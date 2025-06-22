@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  neo4j:
+    image: neo4j:latest # Or a specific version like neo4j:5.20.0
+    hostname: neo4j
+    container_name: neo4j
+    ports:
+      - "7474:7474" # Neo4j Browser
+      - "7687:7687" # Bolt Protocol (for client applications like NeoDash)
+    volumes:
+      - ./neo4j/data:/data
+      - ./neo4j/logs:/logs
+      - ./neo4j/config:/config # If you have custom config
+      - ./neo4j/plugins:/plugins # If you have any plugins
+    environment:
+      - NEO4J_AUTH=neo4j/password # **IMPORTANT: Set your strong password**
+    restart: always
+    # Define a network for inter-service communication if not using default
+    networks:
+      - neo4j-network
+
+  neodash:
+    image: neo4jlabs/neodash:latest # Official Docker image for NeoDash Labs
+    hostname: neodash
+    container_name: neodash
+    ports:
+      - "5005:5005" # NeoDash UI will be available on port 5005
+    environment:
+      # NeoDash configuration to connect to your Neo4j service
+      - standaloneProtocol=neo4j # Use 'neo4j' protocol for Bolt
+      - standaloneHost=localhost     # <--- IMPORTANT: Use the service name 'neo4j' as the host
+      - standalonePort=7687      # <--- IMPORTANT: Use the Bolt port
+      - standaloneDatabase=neo4j # Default Neo4j database name
+      - standaloneUser=neo4j
+      - standalonePassword=password # **IMPORTANT: Use the same password as above**
+      - standalone=false # Set to true if you want to hardcode dashboard loading
+    depends_on:
+      - neo4j # Ensures Neo4j starts before NeoDash
+    restart: always
+    networks:
+      - neo4j-network
+
+# Define the network to allow communication between services
+networks:
+  neo4j-network:
+    driver: bridge
